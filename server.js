@@ -1,10 +1,11 @@
-const express = require("express");
 const cookieParser = require("cookie-parser");
+require("dotenv").config();
+const express = require("express");
 const jwt = require("jsonwebtoken");
 const requestLogger = require("./middleware/logger");
 const authMiddleware = require("./middleware/auth");
 const { generateToken } = require("./utils/tokenGenerator");
-
+const crypto = require("crypto")
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -13,9 +14,9 @@ const loginSessions = {};
 const otpStore = {};
 
 // Middleware
-app.use(requestLogger);
 app.use(express.json());
-
+app.use(cookieParser());
+app.use(requestLogger);
 
 app.get("/", (req, res) => {
   res.json({
@@ -35,9 +36,8 @@ app.post("/auth/login", (req, res) => {
     }
 
     // Generate session and OTP
-    const loginSessionId = Math.random().toString(36).substring(7);
-    const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
-
+const loginSessionId =crypto.randomBytes(6).toString("hex");
+const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
     // Store session with 2-minute expiry
     loginSessions[loginSessionId] = {
       email,
@@ -45,7 +45,7 @@ app.post("/auth/login", (req, res) => {
       createdAt: Date.now(),
       expiresAt: Date.now() + 2 * 60 * 1000, // 2 minutes
     };
-
+console.log(otp);
     // Store OTP
     otpStore[loginSessionId] = otp;
 
@@ -72,7 +72,7 @@ app.post("/auth/verify-otp", (req, res) => {
         .status(400)
         .json({ error: "loginSessionId and otp required" });
     }
-
+console.log(`${loginSessionId} and${otp}`);
     const session = loginSessions[loginSessionId];
 
     if (!session) {
@@ -86,10 +86,11 @@ app.post("/auth/verify-otp", (req, res) => {
     if (parseInt(otp) !== otpStore[loginSessionId]) {
       return res.status(401).json({ error: "Invalid OTP" });
     }
-
     res.cookie("session_token", loginSessionId, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      // secure: process.env.NODE_ENV === "production", this for http
+      secure:false, //only for local host
+
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
@@ -107,9 +108,16 @@ app.post("/auth/verify-otp", (req, res) => {
   }
 });
 
+// app.get("/check", (req, res) => {
+//   console.log("Cookies:", req.cookies);
+//   res.json(req.cookies);
+// });
+
+
+
 app.post("/auth/token", (req, res) => {
   try {
-    const token = req.headers.authorization;
+    const token = req.cookies.session_token;
 
     if (!token) {
       return res
@@ -122,6 +130,7 @@ app.post("/auth/token", (req, res) => {
     if (!session) {
       return res.status(401).json({ error: "Invalid session" });
     }
+    console.log("ENV SECRET:", process.env.JWT_SECRET);
 
     // Generate JWT
     const secret = process.env.JWT_SECRET || "default-secret-key";
@@ -136,6 +145,7 @@ app.post("/auth/token", (req, res) => {
         expiresIn: "15m",
       }
     );
+    console.log(accessToken);
 
     return res.status(200).json({
       access_token: accessToken,
