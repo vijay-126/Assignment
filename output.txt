@@ -1,0 +1,48 @@
+Fix-Login
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"Kaushikvijay251@email.com","password":"password123"}'
+  respoonse :-  {
+  "message": "OTP sent",
+  "loginSessionId": "ee4561ce261d"
+}
+POST /auth/login
+[OTP] Session ee4561ce261d generated
+POST /auth/login -> 200 (6ms)
+
+Fix OTP Verification
+curl -c cookies.txt -X POST http://localhost:3000/auth/verify-otp \
+  -H "Content-Type: application/json" \
+  -d '{"loginSessionId":"ee4561ce261d","otp":"217558"}'
+
+respoonse:-{
+  "message": "OTP verified",
+  "sessionId": "ee4561ce261d"
+}
+Fix Token Generation
+curl -b cookies.txt -X POST http://localhost:3000/auth/token
+
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6IkthdXNoaWt2aWpheTI1MUBlbWFpbC5jb20iLCJzZXNzaW9uSWQiOiJlZTQ1NjFjZTI2MWQiLCJpYXQiOjE3NzEyNjQ4MzUsImV4cCI6MTc3MTI2NTczNX0.Yv4bAvXAXQUxeM1ZOoaO1Ci39C6nRt6Zp5ymVGm-ThM",
+  "expires_in": 900
+}
+
+Fix Protected Route Access
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6IkthdXNoaWt2aWpheTI1MUBlbWFpbC5jb20iLCJzZXNzaW9uSWQiOiJlZTQ1NjFjZTI2MWQiLCJpYXQiOjE3NzEyNjQ4MzUsImV4cCI6MTc3MTI2NTczNX0.Yv4bAvXAXQUxeM1ZOoaO1Ci39C6nRt6Zp5ymVGm-ThM" \
+http://localhost:3000/protected
+
+{
+  "message": "Access granted",
+  "user": {
+    "email": "Kaushikvijay251@email.com",
+    "sessionId": "ee4561ce261d",
+    "iat": 1771264835,
+    "exp": 1771265735
+  },
+  "success_flag": "FLAG-S2F1c2hpa3ZpamF5MjUxQGVtYWlsLmNvbV9DT01QTEVURURfQVNTSUdOTUVOVA=="
+}
+
+
+
+
+
